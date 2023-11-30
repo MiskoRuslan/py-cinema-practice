@@ -1,30 +1,28 @@
-from django.http import HttpRequest, HttpResponse
-from django.shortcuts import render
-from django.views.generic import ListView
-
-from movies.models import Movie
-
-
-def movie_list_view(request: HttpRequest) -> HttpResponse:
-    movies = Movie.objects.all()[:5]
-    context = {
-        "movies": movies,
-    }
-    return render(request, "movies/movies_list.html", context=context)
+from rest_framework import generics
+from rest_framework.response import Response
+from .models import Movie
+from .serializers import MovieSerializer
 
 
-class MovieListView(ListView):
-    model = Movie
-    template_name = "movies/movies_list.html"
-    context_object_name = "movies"
-    paginate_by = 4
+class MovieListView(generics.ListCreateAPIView):
+    queryset = Movie.objects.all()
+    serializer_class = MovieSerializer
 
-    def get_queryset(self):
-        genre_filter = self.request.GET.get("genre")
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
-        queryset = super().get_queryset()
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response(serializer.data, status=201)
 
-        if genre_filter:
-            queryset = queryset.filter(movie_genres__genre__name=genre_filter)
+    def perform_create(self, serializer):
+        serializer.save()
 
-        return queryset
+
+class MovieDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Movie.objects.all()
+    serializer_class = MovieSerializer
