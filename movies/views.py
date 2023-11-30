@@ -1,11 +1,12 @@
+from django.db.models import F
 from rest_framework import generics
 from rest_framework.response import Response
-from .models import Movie
+from .models import Movie, MovieStar
 from .serializers import MovieSerializer
 
 
 class MovieListView(generics.ListCreateAPIView):
-    queryset = Movie.objects.all()
+    queryset = Movie.objects.annotate(rank=F('id')).order_by('rank')[:10]
     serializer_class = MovieSerializer
 
     def list(self, request, *args, **kwargs):
